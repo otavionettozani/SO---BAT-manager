@@ -95,7 +95,7 @@ int queueCount(Queue* queue){
 //---------------------------------------Funcoes Threads-----------------------//
 char hasAMorePriorityThanB(int laneTypeA, int laneTypeB){
 	
-	return laneTypeB==0? laneTypeA==3 : laneTypeA>laneTypeB;
+	return (laneTypeA==0? laneTypeB==3 : laneTypeA>laneTypeB) || laneTypeB == -1;
 }
 
 void waitSomeTime(){
@@ -113,29 +113,51 @@ void *BatBehaviour(void* args){
 	//arguments processing
 	Arguments* arguments = args;
 	char directions[4] = {'N','E','S','W'};
-	int rightLane = arguments->laneType == 3? 0:arguments->laneType+1;
-	int leftLane = arguments->laneType == 0? 3:arguments->laneType-1;
 	
 	//a thread esta sendo ocupada
 	arguments->busyFlag[0] = 1;
 	printf("BAT %d %c chegou no cruzamento\n",arguments->number,directions[arguments->laneType]);
 
+	
 	switch (arguments->laneType) {
 		case NORTH:
 			pthread_mutex_lock(&arguments->mutexes[NORTH_EAST]);
+			pthread_mutex_lock(&arguments->mutexes[NORTH_WEST]);
+			
+			
+			
+			pthread_mutex_unlock(&arguments->mutexes[NORTH_EAST]);
+			pthread_mutex_unlock(&arguments->mutexes[NORTH_WEST]);
 			
 		break;
 		
 		case SOUTH:
+			pthread_mutex_lock(&arguments->mutexes[SOUTH_EAST]);
+			pthread_mutex_lock(&arguments->mutexes[SOUTH_WEST]);
+			
+			
+			pthread_mutex_unlock(&arguments->mutexes[SOUTH_EAST]);
+			pthread_mutex_unlock(&arguments->mutexes[SOUTH_WEST]);
 			
 		break;
 		
 		case EAST:
+			pthread_mutex_lock(&arguments->mutexes[SOUTH_EAST]);
+			pthread_mutex_lock(&arguments->mutexes[NORTH_EAST]);
 			
+			
+			pthread_mutex_unlock(&arguments->mutexes[SOUTH_EAST]);
+			pthread_mutex_unlock(&arguments->mutexes[NORTH_EAST]);
 		break;
 			
 		case WEST:
+			pthread_mutex_lock(&arguments->mutexes[SOUTH_WEST]);
+			pthread_mutex_lock(&arguments->mutexes[NORTH_WEST]);
 			
+			
+			
+			pthread_mutex_unlock(&arguments->mutexes[SOUTH_WEST]);
+			pthread_mutex_unlock(&arguments->mutexes[NORTH_WEST]);
 		break;
 			
 			
@@ -244,7 +266,7 @@ int main(int argc, const char * argv[]) {
 
 		// verifica se exite uma thread sendo executada para fila i
 		if(!threads[i]){
-			//se ainda forem necessaarias novas threads (a fila i nao estiver vazia), essa thread e criada
+			//se ainda forem necessarias novas threads (a fila i nao estiver vazia), essa thread e criada
 			if(queueCount(queues[i])){
 				arguments[i].number = queueLastNumber(queues[i]);
 				queues[i] = removeElement(queues[i]);
